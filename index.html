@@ -529,7 +529,7 @@
     // यहाँ अपने Cloudflare Worker का URL डालें (सिर्फ आपको एक बार करना है)
     // उदाहरण: 'https://ai-debate-proxy.yourname.workers.dev'
     // =====================================================================
-    const WORKER_URL = 'https://jolly-fire-6cb5.enayatullah9857.workers.dev';
+    const WORKER_URL = 'https://purple-sound-e27a.enayatullah9857.workers.dev/';
     // =====================================================================
 
     const $ = id => document.getElementById(id);
@@ -602,13 +602,21 @@
       if (!WORKER_URL || WORKER_URL.includes('yourname')) {
         throw new Error('WORKER_URL set nahi hai. index.html me WORKER_URL apna Cloudflare Worker link daalein.');
       }
+      // Trim history: keep system prompt + only the last 4 turns to save tokens
+      const trimmed = messages.length > 5
+        ? [messages[0], ...messages.slice(-4)]
+        : messages;
       const res = await fetch(WORKER_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages })
+        body: JSON.stringify({ messages: trimmed })
       });
       const data = await res.json();
       if (!res.ok || data.error) {
+        const msg = (data.error || '').toString();
+        if (msg.includes('429') || msg.toLowerCase().includes('rate limit')) {
+          throw new Error('आज का free quota खत्म हो गया लगता है 😅 कृपया कुछ मिनट बाद या कल दोबारा कोशिश करें।');
+        }
         throw new Error(data.error || ('Server error: ' + res.status));
       }
       return data.text;
